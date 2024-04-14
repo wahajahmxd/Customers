@@ -25,7 +25,13 @@ namespace Bank_Customers_Data_Clone_Project.Model
 
         public string AccountNumber { get; set; }
         public int Balance { get; set; }
+    }
 
+    public class Debit
+    {
+        public int Amount { get; set;}
+        public string AccountNumber { get; set; }
+        public int Balance { get; set;}
     }
 }
 

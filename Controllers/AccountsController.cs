@@ -80,7 +80,7 @@ namespace Bank_Customers_Data_Clone_Project.Controllers
             var filterDefinition = Builders<Customer>.Filter.Eq(c => c.AccountNumber, accountNumber);
             var customer = collectionName.Find(filterDefinition).FirstOrDefault();
 
-            //getting the account number and converting it into int first
+            //getting the account number and converting its balance into int first
             // crediting the amount in the account
             var Balance = customer.AccountBalance;
             var BalanceInt = long.Parse(Balance);
@@ -91,6 +91,35 @@ namespace Bank_Customers_Data_Clone_Project.Controllers
             return Ok(customer);
         }
 
+        [HttpPost("Debit", Name ="Debit")]
+        public IActionResult Debit([FromBody]Debit  debit) 
+        {
+            var amount = debit.Amount;
+            var accountNumber = debit.AccountNumber;
 
+            var dbclient = new MongoClient("mongodb://localhost:27017");
+            IMongoDatabase db = dbclient.GetDatabase("NewDB");
+
+            var collectionName = db.GetCollection<Customer>("Customers");
+
+            //filtering Database with A/C
+            var filterDefinition = Builders<Customer>.Filter.Eq(c => c.AccountNumber, accountNumber);
+            var customer = collectionName.Find(filterDefinition).FirstOrDefault();
+
+            //getting account number, changing its balance from string into int
+            var Balance = customer.AccountBalance;
+            var BalanceInt = long.Parse(Balance);
+
+            //debiting the amount
+            if (BalanceInt > amount)
+            {
+                var NewBalance = BalanceInt - amount;
+                customer.AccountBalance = NewBalance.ToString();
+                return Ok(customer);
+            } else
+            {
+                return NotFound("Not enough funds to process this payment");
+            }
+        }
     }
 }
