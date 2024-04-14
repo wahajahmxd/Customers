@@ -13,5 +13,19 @@ namespace Bank_Customers_Data_Clone_Project.Model
         public string AccountBalance { get; set; }
 
     }
+
+    public class AccountNumberInput
+    {
+        public string AccountNumber { get; set; }
+    }
+
+    public class Credit
+    {
+        public int Amount { get; set; }
+
+        public string AccountNumber { get; set; }
+        public int Balance { get; set; }
+
+    }
 }
 

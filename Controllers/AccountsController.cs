@@ -33,6 +33,7 @@ namespace Bank_Customers_Data_Clone_Project.Controllers
 
             var collectionName = db.GetCollection<Customer>("Customers");
             //var filterDefinition = Builders<Customer>.Filter.Empty; // Empty filter to match all documents
+
             var filterDefinition = Builders<Customer>.Filter.Eq(c => c.AccountNumber, accountNumber);
             var customer = collectionName.Find(filterDefinition).FirstOrDefault();
 
@@ -45,6 +46,51 @@ namespace Bank_Customers_Data_Clone_Project.Controllers
             return Ok(customer);
         }
 
-        [HttpPost() ]
-        public IActionResult AccountNumber([FromBody]
+        [HttpPost("BalInquiry", Name = "BalInquiry")]
+        public IActionResult BalInquiry([FromBody] AccountNumberInput input)
+        {
+            var accountNumber = $"{input.AccountNumber}";
+            
+
+            var dbclient = new MongoClient("mongodb://localhost:27017");
+            IMongoDatabase db = dbclient.GetDatabase("NewDB");
+
+            var collectionName = db.GetCollection<Customer>("Customers");
+            
+            //filtering Database with Account Number
+            var filterDefinition = Builders<Customer>.Filter.Eq(c => c.AccountNumber, accountNumber);
+            var user = collectionName.Find(filterDefinition).FirstOrDefault();
+
+            var Balance = user.AccountBalance;
+            return Ok(Balance);
+        }
+
+        [HttpPost("Credit", Name ="Credit")]
+        public IActionResult Credit([FromBody] Credit credit)
+        {
+            var amount = credit.Amount;
+            var accountNumber = credit.AccountNumber;
+
+            var dbclient = new MongoClient("mongodb://localhost:27017");
+            IMongoDatabase db = dbclient.GetDatabase("NewDB");
+
+            var collectionName = db.GetCollection<Customer>("Customers");
+
+            //filtering Database with A/C
+            var filterDefinition = Builders<Customer>.Filter.Eq(c => c.AccountNumber, accountNumber);
+            var customer = collectionName.Find(filterDefinition).FirstOrDefault();
+
+            //getting the account number and converting it into int first
+            // crediting the amount in the account
+            var Balance = customer.AccountBalance;
+            var BalanceInt = long.Parse(Balance);
+
+            var NewBalance = BalanceInt + amount;
+            customer.AccountBalance = NewBalance.ToString();
+  
+            return Ok(customer);
+        }
+
+
+    }
 }
