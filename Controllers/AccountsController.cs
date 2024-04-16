@@ -50,21 +50,27 @@ namespace Bank_Customers_Data_Clone_Project.Controllers
         }   
 
         [HttpGet]
-        public IActionResult Get()
+        public IActionResult Get([FromQuery] string accountNumber )
         {
-            var accountNumber = "0292029029";
+            try
+            {
+                
 
-            var dbclient = new MongoClient("mongodb://localhost:27017");
-            IMongoDatabase db = dbclient.GetDatabase("NewDB");
+                var dbclient = new MongoClient("mongodb://localhost:27017");
+                IMongoDatabase db = dbclient.GetDatabase("NewDB");
 
-            var collectionName = db.GetCollection<Account>("Accounts");
-            //var filterDefinition = Builders<Customer>.Filter.Empty; // Empty filter to match all documents
+                var collectionName = db.GetCollection<Account>("Accounts");
+                //var filterDefinition = Builders<Customer>.Filter.Empty; // Empty filter to match all documents
 
-            var filterDefinition = Builders<Account>.Filter.Eq(c => c.AccountNumber, accountNumber);
-            var customer = collectionName.Find(filterDefinition).FirstOrDefault();
+                var filterDefinition = Builders<Account>.Filter.Eq(c => c.AccountNumber, accountNumber);
+                var customer = collectionName.Find(filterDefinition).FirstOrDefault();
 
-            
-            return Ok(customer);
+
+                return Ok(customer);
+            } catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost("BalInquiry", Name = "BalInquiry")]
@@ -149,39 +155,46 @@ namespace Bank_Customers_Data_Clone_Project.Controllers
         [HttpPost("Debit", Name ="Debit")]
         public IActionResult Debit([FromBody]Transaction  debit) 
         {
-            var amount = debit.Amount;
-            var accountNumber = debit.AccountNumber;
-
-            var dbclient = new MongoClient("mongodb://localhost:27017");
-            IMongoDatabase db = dbclient.GetDatabase("NewDB");
-            var collectionName = db.GetCollection<Account>("Accounts");
-
-            //filtering Database with A/C
-            var filterDefinition = Builders<Account>.Filter.Eq(c => c.AccountNumber, accountNumber);
-
-            var customer = collectionName.Find(filterDefinition).FirstOrDefault();
-            if (customer != null)
+            try
             {
-                //getting account number, changing its balance from string into int
-                var balance = customer.AccountBalance;
-                //var BalanceInt = long.Parse(Balance);
+                var amount = debit.Amount;
+                var accountNumber = debit.AccountNumber;
 
-                //debiting the amount
-                if (balance > amount)
+                var dbclient = new MongoClient("mongodb://localhost:27017");
+                IMongoDatabase db = dbclient.GetDatabase("NewDB");
+                var collectionName = db.GetCollection<Account>("Accounts");
+
+                //filtering Database with A/C
+                var filterDefinition = Builders<Account>.Filter.Eq(c => c.AccountNumber, accountNumber);
+
+                var customer = collectionName.Find(filterDefinition).FirstOrDefault();
+                if (customer != null)
                 {
-                    var NewBalance = balance - amount;
-                    customer.AccountBalance = NewBalance;
+                    //getting account number, changing its balance from string into int
+                    var balance = customer.AccountBalance;
+                    //var BalanceInt = long.Parse(Balance);
 
-                    var updateDefinition = Builders<Account>.Update.Set("AccountBalance", customer.AccountBalance);
+                    //debiting the amount
+                    if (balance > amount)
+                    {
+                        var NewBalance = balance - amount;
+                        customer.AccountBalance = NewBalance;
 
-                    collectionName.UpdateOne(filterDefinition, updateDefinition);
-                    return Ok(customer);
+                        var updateDefinition = Builders<Account>.Update.Set("AccountBalance", customer.AccountBalance);
+
+                        collectionName.UpdateOne(filterDefinition, updateDefinition);
+                        return Ok(customer);
+                    }
+                    else
+                    {
+                        return BadRequest("Not enough funds to process this payment");
+                    }
                 }
-                else
-                {
-                    return BadRequest("Not enough funds to process this payment");
-                }
-            } else { return BadRequest(); }
+                else { return BadRequest(); }
+            } catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
         
 
