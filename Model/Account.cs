@@ -3,7 +3,7 @@
 namespace Bank_Customers_Data_Clone_Project.Model
 {
     [BsonIgnoreExtraElements]
-    public class Customer
+    public class Account
     {
         public string Name { get; set; }
         public string Address { get; set; }
@@ -24,14 +24,14 @@ namespace Bank_Customers_Data_Clone_Project.Model
         public int Amount { get; set; }
 
         public string AccountNumber { get; set; }
-        public int Balance { get; set; }
+        
     }
 
     public class Debit
     {
         public int Amount { get; set;}
         public string AccountNumber { get; set; }
-        public int Balance { get; set;}
+        
     }
 }
 

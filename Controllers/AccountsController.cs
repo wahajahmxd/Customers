@@ -3,6 +3,7 @@ using Bank_Customers_Data_Clone_Project.Model;
 using MongoDB.Driver;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using System.Collections;
 
 namespace Bank_Customers_Data_Clone_Project.Controllers
 {
@@ -12,16 +13,44 @@ namespace Bank_Customers_Data_Clone_Project.Controllers
     {
 
         [HttpPost]
-        public IActionResult Post([FromBody] Customer customer)
+        public IActionResult Post([FromBody] Account customer)
         {
-            var dbclient = new MongoClient("mongodb://localhost:27017");
-            IMongoDatabase db = dbclient.GetDatabase("NewDB");
+            try
+            {
+                var dbclient = new MongoClient("mongodb://localhost:27017");
+                var db = dbclient.GetDatabase("NewDB");
 
-            var collection = db.GetCollection<Customer>("Customers");
+                var collection = db.GetCollection<Account>("Accounts");
 
-            collection.InsertOne(customer);
+                var accountNumber = customer.AccountNumber;
+                if (accountNumber != null && !string.IsNullOrEmpty(accountNumber) )
+                {
+                    var filterDefinition = Builders<Account>.Filter.Eq(c => c.AccountNumber, accountNumber);
+                    var account = collection.Find(filterDefinition).FirstOrDefault();
+                    if (account != null)
+                    {
+                        return BadRequest("This Account Number is already in use");
+                    } else
+                    {
+                    collection.InsertOne(customer);
+                    return Ok(customer);
+                    }
+
+                    //fetch account/customer
+                    //account!=null => already excists
+                   // return BadRequest("This Account Number is already in use");
+                } else
+                {
+                    
+                    return BadRequest("sorry");
+                }
+
+            } catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
             return Ok(customer);
-        }
+        }   
 
         [HttpGet]
         public IActionResult Get()
@@ -31,10 +60,10 @@ namespace Bank_Customers_Data_Clone_Project.Controllers
             var dbclient = new MongoClient("mongodb://localhost:27017");
             IMongoDatabase db = dbclient.GetDatabase("NewDB");
 
-            var collectionName = db.GetCollection<Customer>("Customers");
+            var collectionName = db.GetCollection<Account>("Accounts");
             //var filterDefinition = Builders<Customer>.Filter.Empty; // Empty filter to match all documents
 
-            var filterDefinition = Builders<Customer>.Filter.Eq(c => c.AccountNumber, accountNumber);
+            var filterDefinition = Builders<Account>.Filter.Eq(c => c.AccountNumber, accountNumber);
             var customer = collectionName.Find(filterDefinition).FirstOrDefault();
 
             /// add 1000 rs in the customer's balance and then return the customer 
@@ -49,61 +78,95 @@ namespace Bank_Customers_Data_Clone_Project.Controllers
         [HttpPost("BalInquiry", Name = "BalInquiry")]
         public IActionResult BalInquiry([FromBody] AccountNumberInput input)
         {
-            var accountNumber = $"{input.AccountNumber}";
-            
+            try
+            {
+                var accountNumber = input.AccountNumber;
 
-            var dbclient = new MongoClient("mongodb://localhost:27017");
-            IMongoDatabase db = dbclient.GetDatabase("NewDB");
 
-            var collectionName = db.GetCollection<Customer>("Customers");
-            
-            //filtering Database with Account Number
-            var filterDefinition = Builders<Customer>.Filter.Eq(c => c.AccountNumber, accountNumber);
-            var user = collectionName.Find(filterDefinition).FirstOrDefault();
+                var dbclient = new MongoClient("mongodb://localhost:27017");
+                var db = dbclient.GetDatabase("NewDB");
 
-            var Balance = user.AccountBalance;
-            return Ok(Balance);
+                var collectionName = db.GetCollection<Account>("Accounts");
+
+                //filtering Database with Account Number
+                var filterDefinition = Builders<Account>.Filter.Eq(c => c.AccountNumber, accountNumber);
+                var account = collectionName.Find(filterDefinition).FirstOrDefault();
+
+                if (account != null)
+                {
+
+                    var Balance = account.AccountBalance;
+
+                    return Ok(Balance);
+                }
+                else
+                {
+                    throw new Exception();
+                }
+            }catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
-        [HttpPost("Credit", Name ="Credit")]
+        [HttpPost("Credit", Name = "Credit")]
         public IActionResult Credit([FromBody] Credit credit)
         {
-            var amount = credit.Amount;
-            var accountNumber = credit.AccountNumber;
+            try
+            {
+                var amount = credit.Amount;
+                var accountNumber = credit.AccountNumber;
 
-            var dbclient = new MongoClient("mongodb://localhost:27017");
-            IMongoDatabase db = dbclient.GetDatabase("NewDB");
+                var dbclient = new MongoClient("mongodb://localhost:27017");
+                var db = dbclient.GetDatabase("NewDB");
 
-            var collectionName = db.GetCollection<Customer>("Customers");
+                var collectionName = db.GetCollection<Account>("Accounts");
 
-            //filtering Database with A/C
-            var filterDefinition = Builders<Customer>.Filter.Eq(c => c.AccountNumber, accountNumber);
-            var customer = collectionName.Find(filterDefinition).FirstOrDefault();
+                //filtering Database with A/C
+                var filterDefinition = Builders<Account>.Filter.Eq(c => c.AccountNumber, accountNumber);
+                var customer = collectionName.Find(filterDefinition).FirstOrDefault();
+                var balance = 0.0;
 
-            //getting the account number and converting its balance into int first
-            // crediting the amount in the account
-            var Balance = customer.AccountBalance;
-            var BalanceInt = long.Parse(Balance);
+                //getting the account number and converting its balance into int first
+                // crediting the amount in the account
+                //var Balance = customer.AccountBalance;
+                //var BalanceInt = long.Parse(Balance);
+                if (customer != null)
+                {
+                    var newBalance = customer.AccountBalance + amount;
+                    customer.AccountBalance = newBalance;
+                    //customer.AccountBalance = NewBalance.ToString();
 
-            var NewBalance = BalanceInt + amount;
-            customer.AccountBalance = NewBalance.ToString();
-  
-            return Ok(customer);
+                    var updateDefinition = Builders<Account>.Update.Set("AccountBalance", customer.AccountBalance);
+
+                    collectionName.UpdateOne(filterDefinition, updateDefinition);
+
+                    return Ok(customer);
+                }
+                else
+                {
+                    return BadRequest("No user is present on your reference");
+                }
+            } catch (Exception ex)
+                {
+                return BadRequest(ex.Message);
+                }
+
         }
 
         [HttpPost("Debit", Name ="Debit")]
-        public IActionResult Debit([FromBody]Debit  debit) 
+        public IActionResult Debit([FromBody]Credit  debit) 
         {
             var amount = debit.Amount;
             var accountNumber = debit.AccountNumber;
 
             var dbclient = new MongoClient("mongodb://localhost:27017");
             IMongoDatabase db = dbclient.GetDatabase("NewDB");
-
-            var collectionName = db.GetCollection<Customer>("Customers");
+            var collectionName = db.GetCollection<Account>("Accounts");
 
             //filtering Database with A/C
-            var filterDefinition = Builders<Customer>.Filter.Eq(c => c.AccountNumber, accountNumber);
+            var filterDefinition = Builders<Account>.Filter.Eq(c => c.AccountNumber, accountNumber);
+
             var customer = collectionName.Find(filterDefinition).FirstOrDefault();
 
             //getting account number, changing its balance from string into int
@@ -115,11 +178,19 @@ namespace Bank_Customers_Data_Clone_Project.Controllers
             {
                 var NewBalance = BalanceInt - amount;
                 customer.AccountBalance = NewBalance.ToString();
+
+                var updateDefinition = Builders<Account>.Update.Set("AccountBalance", customer.AccountBalance);
+
+                collectionName.UpdateOne(filterDefinition, updateDefinition);
                 return Ok(customer);
             } else
             {
                 return NotFound("Not enough funds to process this payment");
             }
         }
+        
+
     }
 }
+
+
