@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Bank_Customers_Data_Clone_Project.Model;
 using MongoDB.Driver;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
-using System.Collections;
 
 namespace Bank_Customers_Data_Clone_Project.Controllers
 {
@@ -66,12 +63,7 @@ namespace Bank_Customers_Data_Clone_Project.Controllers
             var filterDefinition = Builders<Account>.Filter.Eq(c => c.AccountNumber, accountNumber);
             var customer = collectionName.Find(filterDefinition).FirstOrDefault();
 
-            /// add 1000 rs in the customer's balance and then return the customer 
-            var NewBalance = customer.AccountBalance;
-            var NewBalanceInt = long.Parse(NewBalance);
-
-            NewBalanceInt = NewBalanceInt + 1000;
-            customer.AccountBalance = NewBalanceInt.ToString();
+            
             return Ok(customer);
         }
 
@@ -110,7 +102,7 @@ namespace Bank_Customers_Data_Clone_Project.Controllers
         }
 
         [HttpPost("Credit", Name = "Credit")]
-        public IActionResult Credit([FromBody] Credit credit)
+        public IActionResult Credit([FromBody] Transaction credit)
         {
             try
             {
@@ -155,7 +147,7 @@ namespace Bank_Customers_Data_Clone_Project.Controllers
         }
 
         [HttpPost("Debit", Name ="Debit")]
-        public IActionResult Debit([FromBody]Credit  debit) 
+        public IActionResult Debit([FromBody]Transaction  debit) 
         {
             var amount = debit.Amount;
             var accountNumber = debit.AccountNumber;
@@ -168,25 +160,28 @@ namespace Bank_Customers_Data_Clone_Project.Controllers
             var filterDefinition = Builders<Account>.Filter.Eq(c => c.AccountNumber, accountNumber);
 
             var customer = collectionName.Find(filterDefinition).FirstOrDefault();
-
-            //getting account number, changing its balance from string into int
-            var Balance = customer.AccountBalance;
-            var BalanceInt = long.Parse(Balance);
-
-            //debiting the amount
-            if (BalanceInt > amount)
+            if (customer != null)
             {
-                var NewBalance = BalanceInt - amount;
-                customer.AccountBalance = NewBalance.ToString();
+                //getting account number, changing its balance from string into int
+                var balance = customer.AccountBalance;
+                //var BalanceInt = long.Parse(Balance);
 
-                var updateDefinition = Builders<Account>.Update.Set("AccountBalance", customer.AccountBalance);
+                //debiting the amount
+                if (balance > amount)
+                {
+                    var NewBalance = balance - amount;
+                    customer.AccountBalance = NewBalance;
 
-                collectionName.UpdateOne(filterDefinition, updateDefinition);
-                return Ok(customer);
-            } else
-            {
-                return NotFound("Not enough funds to process this payment");
-            }
+                    var updateDefinition = Builders<Account>.Update.Set("AccountBalance", customer.AccountBalance);
+
+                    collectionName.UpdateOne(filterDefinition, updateDefinition);
+                    return Ok(customer);
+                }
+                else
+                {
+                    return BadRequest("Not enough funds to process this payment");
+                }
+            } else { return BadRequest(); }
         }
         
 

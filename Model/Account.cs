@@ -10,7 +10,7 @@ namespace Bank_Customers_Data_Clone_Project.Model
         public string Phone { get; set; }
         public string Email { get; set; }
         public string AccountNumber { get; set; }
-        public string AccountBalance { get; set; }
+        public double AccountBalance { get; set; }
 
     }
 
@@ -19,7 +19,7 @@ namespace Bank_Customers_Data_Clone_Project.Model
         public string AccountNumber { get; set; }
     }
 
-    public class Credit
+    public class Transaction
     {
         public int Amount { get; set; }
 
@@ -27,11 +27,6 @@ namespace Bank_Customers_Data_Clone_Project.Model
         
     }
 
-    public class Debit
-    {
-        public int Amount { get; set;}
-        public string AccountNumber { get; set; }
-        
-    }
+   
 }
 
